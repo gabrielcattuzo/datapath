@@ -1,0 +1,16 @@
+{
+  "name": "sim-datapath-de2-115",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Simulador da DE2-115 rodando o datapath de ciclo unico do Lab 05",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/build.mjs --test && node dist/test.js"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2"
+  }
+}

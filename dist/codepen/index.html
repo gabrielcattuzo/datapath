@@ -1,0 +1,196 @@
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@400;500;600;700;800&family=Share+Tech+Mono&display=swap">
+<!-- Brilho dos segmentos acesos -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="segGlow" x="-80%" y="-40%" width="260%" height="180%">
+      <feGaussianBlur stdDeviation="2.3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+</svg>
+
+<header class="intro">
+  <h1>Datapath de ciclo único <span>· DE2-115</span></h1>
+  <p>Ligue a placa em <b>POWER</b>. <b>KEY0</b> é o clock: executa a instrução do PC. <b>KEY1</b> reseta. Os displays mostram o PC, o registrador de destino e o resultado da ULA antes da borda.</p>
+</header>
+
+<div class="cmds">
+  <button type="button" class="cbtn main" id="btn-passo">Passo <kbd>Espaço</kbd></button>
+  <button type="button" class="cbtn" id="btn-reset">Reset <kbd>R</kbd></button>
+  <button type="button" class="cbtn" id="btn-rodar">Rodar até o fim</button>
+  <button type="button" class="cbtn" id="btn-sortear">Valores aleatórios</button>
+  <label class="opt"><input type="checkbox" id="sem-debounce"> Botão sem debounce</label>
+  <span class="hint">Segure <kbd>A</kbd> ou <kbd>B</kbd> para ver os operandos (KEY2, KEY3).</span>
+</div>
+
+<!-- ============ PLACA ============ -->
+<section class="board is-off" id="board" aria-label="Placa DE2-115 simulada">
+  <span class="hole h-tl" aria-hidden="true"></span><span class="hole h-tr" aria-hidden="true"></span>
+  <span class="hole h-bl" aria-hidden="true"></span><span class="hole h-br" aria-hidden="true"></span>
+
+  <div class="b-top">
+    <div class="pwr">
+      <div class="dcjack" aria-hidden="true"><span></span></div>
+      <div class="comp">
+        <button class="key pwr-btn" id="power" type="button" aria-pressed="false" aria-label="Botão de energia: ligar a placa"><span class="cap"></span></button>
+        <span class="silk lbl">Power</span>
+      </div>
+      <div class="comp" style="padding-bottom:3px">
+        <span class="led b" id="pwrLed"></span>
+        <span class="silk lbl">PWR</span>
+      </div>
+    </div>
+
+    <div class="brand">
+      <div class="brand-row silk"><span>Altera</span><span class="sep"></span><span>Terasic</span></div>
+      <div class="model silk">DE2-115</div>
+      <div class="tag silk">Development &amp; Education Board</div>
+    </div>
+
+    <div class="ports" aria-hidden="true">
+      <div class="comp"><span class="vga"></span><span class="silk lbl">VGA</span></div>
+      <div class="comp"><span class="rj45"><i></i><i></i></span><span class="silk lbl">Ethernet</span></div>
+      <div class="comp"><span class="usb"></span><span class="silk lbl">Blaster</span></div>
+      <div class="comp"><span class="audio"><i></i><i></i><i></i></span><span class="silk lbl">Audio</span></div>
+    </div>
+  </div>
+
+  <div class="b-mid">
+    <div class="comp">
+      <div class="chip" aria-hidden="true">
+        <span class="pin1"></span>
+        <span class="chip-fam">CYCLONE IV E</span>
+        <span class="chip-pn">EP4CE115F29C7N</span>
+        <span class="chip-lot">114 480 LEs</span>
+      </div>
+      <span class="silk lbl">U1 · FPGA</span>
+    </div>
+
+    <div class="comp">
+      <div class="lcd" aria-hidden="true"><div class="lcd-glass"></div></div>
+      <span class="silk lbl">LCD 16×2 · sem uso no lab</span>
+    </div>
+
+    <div class="optable silk" aria-label="Decodificação de funct para ULACtl">
+      <div class="ot-title">Controle · funct → ULACtl</div>
+      <div class="ot-cols">
+        <div id="otCol0"></div>
+        <div id="otCol1"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="b-io">
+    <div class="hex-block"><div class="hex-grid" id="hexGrid"></div></div>
+    <div class="ledg-block"><div class="ledg-grid" id="ledgGrid"></div></div>
+    <div class="sw-block" id="swBlock">
+      <div class="sw-legend silk" aria-hidden="true"><span>1</span><span>0</span></div>
+      <div class="sw-grid" id="swGrid"></div>
+    </div>
+    <div class="key-block">
+      <div class="grp top silk" style="max-width:284px">KEY[3:0] · ativo em 0</div>
+      <div class="keys" id="keys"></div>
+    </div>
+  </div>
+</section>
+
+<p class="toast" id="aviso" role="status" hidden></p>
+
+<!-- ============ PAINÉIS ============ -->
+<div class="below">
+  <section class="panel probe" id="probe" aria-labelledby="probeTitle">
+    <div class="panel-head">
+      <h2 id="probeTitle">Sonda lógica</h2>
+      <span class="status" id="probeStatus">sem energia</span>
+    </div>
+    <div class="bus" id="bus">
+      <div class="bus-h"><span></span><span>b15 … b0</span><span>Hex</span><span>Sem sinal</span><span>Com sinal</span></div>
+    </div>
+    <p class="bus-note" id="busNote"></p>
+    <div class="opline"><span class="opm" id="probeOp">—</span><span class="opf" id="probeFx"></span></div>
+    <div class="flags" id="probeFlags"></div>
+    <p class="explain" id="ex1"></p>
+    <p class="explain" id="ex2"></p>
+    <p class="explain" id="ex3"></p>
+  </section>
+
+  <section class="panel guide" aria-labelledby="guideTitle">
+    <div class="panel-head"><h2 id="guideTitle">Mapa de E/S</h2></div>
+    <dl class="map">
+      <div><dt>KEY0</dt><dd>Executa uma instrução: grava rd e avança o PC. Passa pelo debounce, então um aperto é um passo.</dd></div>
+      <div><dt>KEY1</dt><dd>Reset: PC = 0 e registradores voltam aos valores iniciais.</dd></div>
+      <div><dt>KEY2 / KEY3</dt><dd>Segure para ver em HEX3–0 o operando A (rs) ou B (rt).</dd></div>
+      <div><dt>SW17</dt><dd>Modo ver registrador: HEX3–0 mostra o registrador escolhido em SW4–0.</dd></div>
+      <div><dt>SW4–SW0</dt><dd>Número do registrador, só com SW17 = 1.</dd></div>
+      <div><dt>HEX7–6</dt><dd>PC em bytes: 00, 04, 08…</dd></div>
+      <div><dt>HEX5–4</dt><dd>Número do registrador mostrado: rd, rs, rt ou SW4–0.</dd></div>
+      <div><dt>HEX3–0</dt><dd>Resultado da ULA, que será gravado em rd no próximo KEY0.</dd></div>
+      <div><dt>LEDG4–0</dt><dd>Negativo (R[15]), RegWrite (Wr), Cout, Overflow e Zero.</dd></div>
+      <div><dt>LEDG8</dt><dd>Acende enquanto KEY0 está apertado, já filtrado.</dd></div>
+      <div><dt>LEDR17–0</dt><dd>Bits 17–0 da instrução: rt[1:0], rd, shamt e funct.</dd></div>
+    </dl>
+    <p class="note">O datapath roda no CLOCK_50 e o KEY0 vira um pulso de enable de um ciclo. Só PC[5:2] endereça a ROM, então em 0x40 o programa recomeça com os registradores já alterados.</p>
+  </section>
+</div>
+
+<div class="below">
+  <section class="panel wide" aria-labelledby="diagTitle">
+    <div class="panel-head"><h2 id="diagTitle">Datapath</h2><span class="meta">valores da instrução atual</span></div>
+    <div class="diag-wrap" id="diag-slot"></div>
+  </section>
+</div>
+
+<div class="below even">
+  <section class="panel" aria-labelledby="romTitle">
+    <div class="panel-head"><h2 id="romTitle">Memória de instruções</h2><span class="meta">16 × 32 bits</span></div>
+    <div class="tbl-wrap">
+      <table class="tbl rom">
+        <thead><tr><th>PC</th><th>Palavra</th><th>Instrução</th></tr></thead>
+        <tbody id="rom"></tbody>
+      </table>
+    </div>
+    <p class="pnote" id="rom-nota" style="margin:10px 0 0"></p>
+
+    <details class="editor" id="editor">
+      <summary>Editar programa e valores iniciais</summary>
+      <label for="fonte" class="ed-lbl">Uma instrução por linha (<code>add sub and or xor nor slt nop</code>, formato <code>op rd, rs, rt</code>). Valores iniciais como <code>$3 = -5</code> ou <code>$5 = 0x00F0</code>.</label>
+      <textarea id="fonte" spellcheck="false" rows="18"></textarea>
+      <ul class="erros" id="erros"></ul>
+      <div class="row-btn">
+        <button type="button" class="cbtn main" id="btn-montar">Montar e resetar</button>
+        <button type="button" class="cbtn" id="btn-padrao">Voltar ao programa do lab</button>
+      </div>
+      <h3>VHDL deste programa</h3>
+      <p class="pnote" style="margin:0">Cole cada bloco no lugar da constante de mesmo nome. Os dois primeiros vão em <code>datapath_board.vhd</code>, o terceiro em <code>datapath_tb.vhd</code>.</p>
+      <div class="vhdl">
+        <div class="vhdl-h"><span>mem_instrucoes · ROM</span><button type="button" class="cbtn mini" data-copia="#vhdl-rom">Copiar</button></div>
+        <pre id="vhdl-rom"></pre>
+        <div class="vhdl-h"><span>banco_registradores · INICIAL</span><button type="button" class="cbtn mini" data-copia="#vhdl-ini">Copiar</button></div>
+        <pre id="vhdl-ini"></pre>
+        <div class="vhdl-h"><span>datapath_tb · ESPERADO e REGS_FINAL</span><button type="button" class="cbtn mini" data-copia="#vhdl-tb">Copiar</button></div>
+        <pre id="vhdl-tb"></pre>
+      </div>
+    </details>
+  </section>
+
+  <section class="panel" aria-labelledby="regTitle">
+    <div class="panel-head"><h2 id="regTitle">Banco de registradores</h2><button type="button" class="cbtn mini" id="btn-sair-reg">Desligar SW17</button></div>
+    <p class="pnote">Clique num registrador para vê-lo na placa (liga SW17 e põe o número em SW4–0). Borda clara: valor diferente do inicial.</p>
+    <div class="regs" id="regs"></div>
+  </section>
+</div>
+
+<div class="below">
+  <section class="panel wide" aria-labelledby="logTitle">
+    <div class="panel-head"><h2 id="logTitle">Execução</h2><button type="button" class="cbtn mini" id="btn-copiar-log">Copiar tabela</button></div>
+    <div class="tbl-wrap">
+      <table class="tbl log">
+        <thead><tr><th>#</th><th>PC</th><th>Instrução</th><th>A</th><th>B</th><th>R</th><th>Flags</th><th>Gravou</th></tr></thead>
+        <tbody id="log"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<p class="foot">A lógica é a mesma do VHDL (ula, controle_ula, banco_registradores, datapath_board, hex7seg) e foi conferida contra a simulação no GHDL. A placa mostra só o que o datapath_board liga de verdade.</p>

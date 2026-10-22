@@ -1,0 +1,73 @@
+/* base.css — tokens de cor e fonte, página, cabeçalho e comandos.
+   Layout: a placa fica centrada sobre a "bancada"; os painéis vêm logo abaixo.
+   Visual único (bancada escura), igual nos temas claro e escuro. */
+:root {
+  color-scheme: dark;
+  --bench: #0e1012;
+  --bench-glow: #1d2126;
+  --pcb: #3a3f45;
+  --pcb-hi: #4c525a;
+  --pcb-lo: #272a2f;
+  --silk: #e9ece5;
+  --silk-dim: rgba(233, 236, 229, .42);
+  --seg-on: #ff3522;
+  --seg-off: #2a100e;
+  --led-r: #ff3b2d;
+  --led-r-off: #4a1c18;
+  --led-g: #56ff8a;
+  --led-g-off: #173a25;
+  --led-b: #5ab8ff;
+  --led-b-off: #1a2c3d;
+  --lcd-bg: #a8c13e;
+  --lcd-bg-off: #262d21;
+  --lcd-ink: #1b2907;
+  --panel: #171a1e;
+  --line: #2a2f35;
+  --fg: #dfe2dc;
+  --muted: #8d9399;
+  --accent: #ff6a4d;
+  --f-silk: "Saira Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-data: "Share Tech Mono", ui-monospace, Consolas, monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bench); }
+body {
+  margin: 0;
+  background: radial-gradient(1200px 640px at 50% -12%, var(--bench-glow), transparent 70%), var(--bench);
+  color: var(--fg);
+  font: 400 15px/1.5 var(--f-silk);
+  padding-inline: 16px;
+  padding-block: 22px 48px;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--led-b); outline-offset: 3px; }
+
+.intro { max-width: 1120px; margin: 0 auto 18px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 24px; }
+.intro h1 { margin: 0; font-weight: 700; font-size: 1.05rem; letter-spacing: .06em; text-transform: uppercase; color: var(--fg); }
+.intro h1 span { color: var(--muted); font-weight: 500; }
+.intro p { margin: 0; color: var(--muted); max-width: 62ch; font-size: .95rem; }
+.intro b { color: var(--fg); font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+.wrap { max-width: 1120px; margin-inline: auto; }
+
+/* comandos acima da placa */
+.cmds { max-width: 1120px; margin: 0 auto 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.cbtn { appearance: none; display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel); color: var(--fg); font-weight: 600; font-size: .88rem; letter-spacing: .04em; }
+.cbtn:hover { border-color: var(--muted); }
+.cbtn.main { background: var(--accent); border-color: var(--accent); color: #1a0d09; }
+.cbtn.main:hover { filter: brightness(1.08); }
+.cbtn.mini { padding: 3px 10px; font-size: .78rem; font-weight: 600; }
+.cbtn kbd { font-family: var(--f-data); font-size: .72rem; font-weight: 400; padding: 0 5px; border: 1px solid currentColor; border-radius: 3px; opacity: .7; }
+.opt { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: .88rem; cursor: pointer; }
+.opt input { accent-color: var(--accent); }
+.hint { color: var(--muted); font-size: .82rem; flex: 1 1 260px; min-width: 0; text-align: right; }
+.hint kbd { font-family: var(--f-data); font-size: .74rem; padding: 0 4px; border: 1px solid var(--line); border-radius: 3px; color: var(--fg); }
+.toast { max-width: 1120px; margin: 12px auto 0; padding: 8px 14px; border-radius: 8px; background: #2b2216; border: 1px solid #5a4322; color: #ffd9a8; font-size: .9rem; }
+@media (max-width: 760px) { .hint { text-align: left; } }
