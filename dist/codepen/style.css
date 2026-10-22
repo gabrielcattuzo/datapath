@@ -302,9 +302,22 @@ button { font: inherit; color: inherit; }
 .note { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: .88rem; color: var(--muted); max-width: 66ch; }
 .note + .note { border-top: 0; padding-top: 0; margin-top: 8px; }
 
+/* como funciona */
+.steps { margin: 0; padding: 0; list-style: none; counter-reset: passo; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.steps li { counter-increment: passo; background: var(--bench); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px 14px; }
+.steps h3 { margin: 0 0 6px; font-size: .9rem; font-weight: 700; color: var(--fg); }
+.steps h3::before { content: counter(passo); font-family: var(--f-data); color: var(--accent); margin-right: 8px; }
+.steps p { margin: 0; font-size: .86rem; line-height: 1.5; color: var(--muted); }
+.steps b, .steps code { color: var(--fg); font-weight: 600; }
+.steps code { font-family: var(--f-data); font-weight: 400; }
+.sub { margin: 20px 0 10px; font-size: .72rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--fg); }
+.map-btn div { grid-template-columns: 132px minmax(0, 1fr); }
+.sub + .pnote { margin-top: -4px; }
+
 
 @media (max-width: 420px) {
   .map div { grid-template-columns: 82px minmax(0, 1fr); }
+  .map-btn div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
 }
 
 .bn small { font-family: var(--f-data); font-weight: 400; color: var(--muted); font-size: .7rem; margin-left: 2px; }

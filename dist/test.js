@@ -112,18 +112,23 @@ var HEX7SEG = [
   6,
   14
 ];
+var SW_VER_REG = 17;
+var SW_INSTR = 15;
+var SW_VER_A = 14;
+var SW_VER_B = 13;
 function saidasPlaca(m2, e) {
   const c = avaliar(m2);
+  const sw = (i) => (e.sw >> i & 1) === 1;
   let mostraReg, mostraValor, fonte;
-  if (e.sw >> 17 & 1) {
+  if (sw(SW_VER_REG)) {
     mostraReg = e.sw & 31;
     mostraValor = m2.regs[mostraReg];
     fonte = "reg";
-  } else if (e.key[2]) {
+  } else if (e.key[2] || sw(SW_VER_A)) {
     mostraReg = c.rs;
     mostraValor = c.a;
     fonte = "rs";
-  } else if (e.key[3]) {
+  } else if (e.key[3] || sw(SW_VER_B)) {
     mostraReg = c.rt;
     mostraValor = c.b;
     fonte = "rt";
@@ -132,7 +137,7 @@ function saidasPlaca(m2, e) {
     mostraValor = c.r;
     fonte = "rd";
   }
-  const hexes = [
+  let digitos = [
     mostraValor & 15,
     mostraValor >> 4 & 15,
     mostraValor >> 8 & 15,
@@ -141,7 +146,12 @@ function saidasPlaca(m2, e) {
     mostraReg >> 4 & 15,
     c.pc & 15,
     c.pc >> 4 & 15
-  ].map((n) => HEX7SEG[n]);
+  ];
+  if (sw(SW_INSTR)) {
+    digitos = digitos.map((_, n) => c.instr >>> 4 * n & 15);
+    fonte = "instr";
+  }
+  const hexes = digitos.map((n) => HEX7SEG[n]);
   const ledg = (c.zero ? 1 : 0) | (c.ovf ? 2 : 0) | (c.cout ? 4 : 0) | (c.regWrite ? 8 : 0) | (c.r >> 15 & 1 ? 16 : 0) | (e.key[0] ? 256 : 0);
   return { hex: hexes, ledr: c.instr & 262143, ledg, mostraReg, mostraValor, fonte };
 }
@@ -437,6 +447,16 @@ for (let r = 0; r < 32; r++) ok(m.regs[r] === (REGS_FINAL[r] ?? 0), `$${r} = ${h
   for (let i = 0; i < 5; i++) passo(mm);
   o = saidasPlaca(mm, { sw: 0, key: [false, false, false, false] });
   ok(o.mostraValor === 32768 && (o.ledg & 18) === 18, "LEDG4 (Negativo) e LEDG1 (Overflow) em 0x8000");
+  o = saidasPlaca(mm, { sw: 1 << 15, key: [false, false, false, false] });
+  ok(o.fonte === "instr" && [0, 2, 0, 8, 8, 14, 0, 0].every((d, n) => o.hex[n] === HEX7SEG[d]), "SW15 mostra 00E88020");
+  o = saidasPlaca(mm, { sw: 1 << 15 | 1 << 17 | 1, key: [false, false, false, false] });
+  ok(o.fonte === "instr", "SW15 passa na frente do SW17");
+  o = saidasPlaca(mm, { sw: 1 << 14, key: [false, false, false, false] });
+  ok(o.fonte === "rs" && o.mostraValor === 32767 && o.mostraReg === 7, "SW14 mostra A = $7");
+  o = saidasPlaca(mm, { sw: 1 << 13, key: [false, false, false, false] });
+  ok(o.fonte === "rt" && o.mostraValor === 1 && o.mostraReg === 8, "SW13 mostra B = $8");
+  o = saidasPlaca(mm, { sw: 1 << 16, key: [false, false, false, false] });
+  ok(o.fonte === "rd" && o.mostraValor === 32768, "SW16 n\xE3o muda os displays");
 }
 ok(ula(65531, 12, 2).r === 7 && ula(65531, 12, 2).cout, "-5 + 12");
 ok(ula(5, 7, 4).r === 65534 && !ula(5, 7, 4).cout, "5 - 7");

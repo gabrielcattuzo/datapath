@@ -34,6 +34,7 @@ css/
   panels.css  sonda lógica, mapa de E/S, datapath, ROM, registradores, execução
 test/check.ts compara o modelo com a saída do GHDL e gera casos aleatórios
 scripts/build.mjs  esbuild: junta tudo em dist/index.html
+vhdl/datapath_board.vhd  top-level da placa com as funções das chaves
 ```
 
 Cada função de `hw.ts` corresponde a um bloco do VHDL:
@@ -56,6 +57,13 @@ Cada função de `hw.ts` corresponde a um bloco do VHDL:
 | KEY2 (segurar) | A | HEX mostra o operando A (rs) |
 | KEY3 (segurar) | B | HEX mostra o operando B (rt) |
 | SW17 + SW4–0 | clique no registrador | mostra o registrador escolhido |
+| SW16 | — | clock automático: 2 instruções por segundo (KEY0 continua funcionando) |
+| SW15 | — | HEX7–0 mostram a instrução inteira (32 bits) |
+| SW14 / SW13 | — | HEX3–0 mostram o operando A / B, sem precisar segurar KEY2 / KEY3 |
+
+Prioridade nos displays: SW15, depois SW17, depois A (KEY2/SW14), depois B (KEY3/SW13). SW12–5 estão livres.
+
+As funções das chaves SW16–13 estão em `vhdl/datapath_board.vhd`, que é o `datapath_board.vhd` do lab com o top-level alterado (clock automático, seleção dos displays e LEDG4 = Negativo). O `datapath` e o testbench não mudam.
 
 **Valores aleatórios** sorteia novos valores para $1–$8 mantendo o que cada instrução testa (sub negativo, slt nos dois sentidos, Zero no and, Overflow no add). Os blocos INICIAL e ESPERADO/REGS_FINAL em "VHDL deste programa" são atualizados juntos.
 

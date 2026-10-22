@@ -1,5 +1,5 @@
 // Estado da página, entradas (mouse/teclado) e painéis.
-import { Comb, Maquina, Registro, Saidas, ULA_OPS, avaliar, hex, novaMaquina, passo, reset, s16, saidasPlaca } from "./hw";
+import { AUTO_HZ, Comb, Maquina, Registro, SW_AUTO, Saidas, ULA_OPS, avaliar, hex, novaMaquina, passo, reset, s16, saidasPlaca } from "./hw";
 import { Montado, PROGRAMA_PADRAO, desmontar, montar, paraVhdl } from "./asm";
 import { Placa, montarPlaca } from "./board";
 import { pintarDiagrama, pulsoDiagrama, svgDiagrama } from "./diagram";
@@ -119,6 +119,22 @@ function rodarAteOFim(): void {
   while ((m.pc >>> 2) < mo.usadas && m.pc < 0x40 && k++ < 16) executar();
   if (k === 0) aviso("O PC já passou da última instrução. Aperte KEY1 (reset) para recomeçar.");
   else pulso();
+  render();
+}
+
+// SW16 = 1: clock automático. Como o divisor de clock do VHDL, o tique
+// corre sempre; só executa com a placa ligada e a chave em 1. Igual à
+// placa, não para no fim do programa (em 0x40 a ROM recomeça).
+function tiqueAuto(): void {
+  if (!ligada || ligando || !((sw >> SW_AUTO) & 1)) return;
+  executar();
+  pulso();
+  render();
+}
+
+function alternaSw(i: number): void {
+  sw ^= 1 << i;
+  if (i === SW_AUTO && (sw >> SW_AUTO) & 1 && !ligada) aviso("SW16 ligada, mas a placa está desligada. Aperte POWER.");
   render();
 }
 
@@ -306,7 +322,8 @@ function tabelaLog(): string {
 // ------------------------------------------------------------ init
 function init(): void {
   $("#diag-slot").innerHTML = svgDiagrama();
-  placa = montarPlaca({ alternaSw: i => { sw ^= 1 << i; render(); }, key, power: alternaPower });
+  placa = montarPlaca({ alternaSw, key, power: alternaPower });
+  window.setInterval(tiqueAuto, 1000 / AUTO_HZ);
 
   // Clique de mouse na placa ou nos comandos não deixa o foco preso no botão:
   // assim o Espaço continua sendo o KEY0 mesmo depois de mexer numa chave.

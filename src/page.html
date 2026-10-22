@@ -10,16 +10,16 @@
 
 <header class="intro">
   <h1>Datapath de ciclo único <span>· DE2-115</span></h1>
-  <p>Ligue a placa em <b>POWER</b>. <b>KEY0</b> é o clock: executa a instrução do PC. <b>KEY1</b> reseta. Os displays mostram o PC, o registrador de destino e o resultado da ULA antes da borda.</p>
+  <p>O programa já está gravado na memória de instruções, como na ROM do VHDL. Ligue a placa em <b>POWER</b> e aperte <b>KEY0</b> para executar uma instrução por vez. <b>KEY1</b> reseta. O passo a passo está em <b>Como funciona</b>, logo abaixo da placa.</p>
 </header>
 
 <div class="cmds">
-  <button type="button" class="cbtn main" id="btn-passo">Passo <kbd>Espaço</kbd></button>
-  <button type="button" class="cbtn" id="btn-reset">Reset <kbd>R</kbd></button>
-  <button type="button" class="cbtn" id="btn-rodar">Rodar até o fim</button>
-  <button type="button" class="cbtn" id="btn-sortear">Valores aleatórios</button>
-  <label class="opt"><input type="checkbox" id="sem-debounce"> Botão sem debounce</label>
-  <span class="hint">Segure <kbd>A</kbd> ou <kbd>B</kbd> para ver os operandos (KEY2, KEY3).</span>
+  <button type="button" class="cbtn main" id="btn-passo" title="Mesmo que apertar KEY0: executa a instrução apontada pelo PC">Passo <kbd>Espaço</kbd></button>
+  <button type="button" class="cbtn" id="btn-reset" title="Mesmo que KEY1: PC = 0 e registradores voltam aos valores iniciais">Reset <kbd>R</kbd></button>
+  <button type="button" class="cbtn" id="btn-rodar" title="Aperta KEY0 até passar da última instrução do programa">Rodar até o fim</button>
+  <button type="button" class="cbtn" id="btn-sortear" title="Sorteia novos valores para $1–$8 que continuam testando o mesmo caso em cada instrução">Valores aleatórios</button>
+  <label class="opt" title="Simula um botão que repica: cada aperto executa de 1 a 4 instruções"><input type="checkbox" id="sem-debounce"> Botão sem debounce</label>
+  <span class="hint">Segure <kbd>A</kbd> ou <kbd>B</kbd> para ver os operandos (KEY2, KEY3). Ligue SW16 para o clock automático.</span>
 </div>
 
 <!-- ============ PLACA ============ -->
@@ -95,6 +95,37 @@
 
 <p class="toast" id="aviso" role="status" hidden></p>
 
+<div class="below">
+  <section class="panel wide" aria-labelledby="howTitle">
+    <div class="panel-head"><h2 id="howTitle">Como funciona</h2></div>
+    <ol class="steps">
+      <li><h3>O programa já está gravado</h3><p>As instruções ficam na <b>memória de instruções</b> (tabela mais abaixo) e os valores iniciais ficam no banco de registradores. Na placa, isso é a ROM e a constante INICIAL do <code>datapath_board.vhd</code>. Você não digita instruções na placa.</p></li>
+      <li><h3>O PC aponta a próxima</h3><p>O PC começa em 0x00 e soma 4 a cada instrução: 0x04, 0x08… HEX7–6 mostra o PC, e a linha destacada na memória de instruções é a instrução que ele aponta.</p></li>
+      <li><h3>Os displays já mostram o resultado</h3><p>A ULA é combinacional e calcula o tempo todo. Antes de você apertar qualquer coisa, HEX3–0 já mostra o resultado da instrução atual e HEX5–4 o registrador de destino. Os LEDs verdes mostram as flags.</p></li>
+      <li><h3>KEY0 é o clock</h3><p>Cada aperto é uma borda de clock: o resultado é gravado no registrador rd e o PC avança. O botão passa pelo debounce para que um aperto seja exatamente um passo. Com SW16 ligada, o clock passa a ser automático.</p></li>
+      <li><h3>Na placa real é igual</h3><p>Compile o projeto no Quartus, grave na DE2-115 pelo USB-Blaster e vá apertando KEY0. Para rodar outro programa, edite-o aqui e cole os blocos VHDL gerados no projeto antes de compilar.</p></li>
+    </ol>
+    <h3 class="sub">Chaves (switches)</h3>
+    <p class="pnote">Clique numa chave para mudar a posição: para cima é 1. As chaves não mudam o programa, só como ele roda e o que os displays mostram.</p>
+    <dl class="map map-btn">
+      <div><dt>SW17 + SW4–0</dt><dd>Ver um registrador: com SW17 = 1, HEX3–0 mostra o valor do registrador cujo número está em binário em SW4–0, e HEX5–4 mostra esse número. Clicar num registrador do banco faz isso sozinho.</dd></div>
+      <div><dt>SW16 · Auto</dt><dd>Clock automático: com SW16 = 1, o datapath executa 2 instruções por segundo sem precisar apertar KEY0, e o KEY0 continua funcionando. Como na placa, ele não para no fim do programa: em 0x40 a ROM recomeça. Para recomeçar do estado inicial, use KEY1.</dd></div>
+      <div><dt>SW15 · Inst</dt><dd>Os 8 displays mostram a palavra da instrução atual em hex, a mesma da coluna "Palavra" da memória de instruções. Bom para conferir a codificação tipo R (op, rs, rt, rd, shamt, funct).</dd></div>
+      <div><dt>SW14 · A</dt><dd>HEX3–0 mostra o operando A (dado de rs) e HEX5–4 o número de rs. É o mesmo que segurar KEY2, mas sem segurar.</dd></div>
+      <div><dt>SW13 · B</dt><dd>HEX3–0 mostra o operando B (dado de rt) e HEX5–4 o número de rt. É o mesmo que segurar KEY3.</dd></div>
+      <div><dt>Prioridade</dt><dd>Se várias estiverem ligadas: SW15, depois SW17, depois A (KEY2/SW14), depois B (KEY3/SW13). Com nenhuma, os displays mostram o resultado da ULA.</dd></div>
+    </dl>
+    <h3 class="sub">Botões desta página</h3>
+    <dl class="map map-btn">
+      <div><dt>Passo</dt><dd>O mesmo que KEY0 (ou Espaço): executa uma instrução.</dd></div>
+      <div><dt>Reset</dt><dd>O mesmo que KEY1 (ou R): PC = 0 e registradores voltam aos valores iniciais.</dd></div>
+      <div><dt>Rodar até o fim</dt><dd>Aperta KEY0 até passar da última instrução do programa.</dd></div>
+      <div><dt>Valores aleat.</dt><dd>Sorteia novos valores para $1–$8 que continuam testando o mesmo caso em cada instrução: sub negativo, slt nos dois sentidos, Zero no and e Overflow no add.</dd></div>
+      <div><dt>Sem debounce</dt><dd>Simula um botão que repica: cada aperto executa de 1 a 4 instruções. É o problema que o debounce resolve na placa.</dd></div>
+      <div><dt>Teclado</dt><dd>Espaço = KEY0, R = KEY1, segure A = KEY2 e segure B = KEY3.</dd></div>
+    </dl>
+  </section>
+</div>
 <!-- ============ PAINÉIS ============ -->
 <div class="below">
   <section class="panel probe" id="probe" aria-labelledby="probeTitle">
@@ -102,6 +133,7 @@
       <h2 id="probeTitle">Sonda lógica</h2>
       <span class="status" id="probeStatus">sem energia</span>
     </div>
+    <p class="pnote">Uma ponta de prova nos fios da instrução atual: A e B entram na ULA e R sai dela. Cada valor aparece em binário, hex e decimal (sem e com sinal).</p>
     <div class="bus" id="bus">
       <div class="bus-h"><span></span><span>b15 … b0</span><span>Hex</span><span>Sem sinal</span><span>Com sinal</span></div>
     </div>
@@ -120,6 +152,10 @@
       <div><dt>KEY1</dt><dd>Reset: PC = 0 e registradores voltam aos valores iniciais.</dd></div>
       <div><dt>KEY2 / KEY3</dt><dd>Segure para ver em HEX3–0 o operando A (rs) ou B (rt).</dd></div>
       <div><dt>SW17</dt><dd>Modo ver registrador: HEX3–0 mostra o registrador escolhido em SW4–0.</dd></div>
+      <div><dt>SW16</dt><dd>Clock automático: executa 2 instruções por segundo enquanto estiver em 1.</dd></div>
+      <div><dt>SW15</dt><dd>HEX7–0 mostram a instrução inteira (32 bits em hex). Passa na frente das outras chaves.</dd></div>
+      <div><dt>SW14 / SW13</dt><dd>HEX3–0 mostram o operando A (rs) ou B (rt), como segurar KEY2 ou KEY3.</dd></div>
+      <div><dt>SW12–SW5</dt><dd>Livres.</dd></div>
       <div><dt>SW4–SW0</dt><dd>Número do registrador, só com SW17 = 1.</dd></div>
       <div><dt>HEX7–6</dt><dd>PC em bytes: 00, 04, 08…</dd></div>
       <div><dt>HEX5–4</dt><dd>Número do registrador mostrado: rd, rs, rt ou SW4–0.</dd></div>
@@ -135,6 +171,7 @@
 <div class="below">
   <section class="panel wide" aria-labelledby="diagTitle">
     <div class="panel-head"><h2 id="diagTitle">Datapath</h2><span class="meta">valores da instrução atual</span></div>
+    <p class="pnote">O caminho da instrução: PC → memória de instruções → banco de registradores → ULA → escrita em rd. Cada fio mostra o valor que passa por ele agora, e o caminho é animado a cada KEY0.</p>
     <div class="diag-wrap" id="diag-slot"></div>
   </section>
 </div>
@@ -142,6 +179,7 @@
 <div class="below even">
   <section class="panel" aria-labelledby="romTitle">
     <div class="panel-head"><h2 id="romTitle">Memória de instruções</h2><span class="meta">16 × 32 bits</span></div>
+    <p class="pnote">O programa que o datapath executa. A linha destacada é a instrução apontada pelo PC.</p>
     <div class="tbl-wrap">
       <table class="tbl rom">
         <thead><tr><th>PC</th><th>Palavra</th><th>Instrução</th></tr></thead>
@@ -182,6 +220,7 @@
 <div class="below">
   <section class="panel wide" aria-labelledby="logTitle">
     <div class="panel-head"><h2 id="logTitle">Execução</h2><button type="button" class="cbtn mini" id="btn-copiar-log">Copiar tabela</button></div>
+    <p class="pnote">Uma linha para cada KEY0, com operandos, resultado, flags e o que foi gravado. Serve para comparar com o testbench.</p>
     <div class="tbl-wrap">
       <table class="tbl log">
         <thead><tr><th>#</th><th>PC</th><th>Instrução</th><th>A</th><th>B</th><th>R</th><th>Flags</th><th>Gravou</th></tr></thead>

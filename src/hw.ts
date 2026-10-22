@@ -133,21 +133,31 @@ export interface Saidas {
   ledg: number;         // 9 bits
   mostraReg: number;
   mostraValor: number;
-  fonte: "reg" | "rs" | "rt" | "rd";
+  fonte: "instr" | "reg" | "rs" | "rt" | "rd";
 }
+
+// Chaves com função (as demais, SW12–5, ficam livres)
+export const SW_VER_REG = 17, SW_AUTO = 16, SW_INSTR = 15, SW_VER_A = 14, SW_VER_B = 13;
+export const AUTO_HZ = 2;   // clock automático: instruções por segundo com SW16 = 1
 
 export function saidasPlaca(m: Maquina, e: Entradas): Saidas {
   const c = avaliar(m);
+  const sw = (i: number) => ((e.sw >> i) & 1) === 1;
   let mostraReg: number, mostraValor: number, fonte: Saidas["fonte"];
-  if ((e.sw >> 17) & 1) { mostraReg = e.sw & 31; mostraValor = m.regs[mostraReg]; fonte = "reg"; }
-  else if (e.key[2])    { mostraReg = c.rs; mostraValor = c.a; fonte = "rs"; }
-  else if (e.key[3])    { mostraReg = c.rt; mostraValor = c.b; fonte = "rt"; }
-  else                  { mostraReg = c.rd; mostraValor = c.r; fonte = "rd"; }
-  const hexes = [
+  if (sw(SW_VER_REG))                { mostraReg = e.sw & 31; mostraValor = m.regs[mostraReg]; fonte = "reg"; }
+  else if (e.key[2] || sw(SW_VER_A)) { mostraReg = c.rs; mostraValor = c.a; fonte = "rs"; }
+  else if (e.key[3] || sw(SW_VER_B)) { mostraReg = c.rt; mostraValor = c.b; fonte = "rt"; }
+  else                               { mostraReg = c.rd; mostraValor = c.r; fonte = "rd"; }
+  let digitos = [
     mostraValor & 15, (mostraValor >> 4) & 15, (mostraValor >> 8) & 15, (mostraValor >> 12) & 15,
     mostraReg & 15, (mostraReg >> 4) & 15,
     c.pc & 15, (c.pc >> 4) & 15,
-  ].map(n => HEX7SEG[n]);
+  ];
+  if (sw(SW_INSTR)) {                // SW15 passa na frente: HEX7–0 = instrução inteira
+    digitos = digitos.map((_, n) => (c.instr >>> (4 * n)) & 15);
+    fonte = "instr";
+  }
+  const hexes = digitos.map(n => HEX7SEG[n]);
   const ledg = (c.zero ? 1 : 0) | (c.ovf ? 2 : 0) | (c.cout ? 4 : 0) | (c.regWrite ? 8 : 0) |
     ((c.r >> 15) & 1 ? 16 : 0) | (e.key[0] ? 256 : 0);                // LEDG4 = R[15] (Negativo)
   return { hex: hexes, ledr: c.instr & 0x3ffff, ledg, mostraReg, mostraValor, fonte };

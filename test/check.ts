@@ -55,6 +55,17 @@ for (let r = 0; r < 32; r++) ok(m.regs[r] === (REGS_FINAL[r] ?? 0), `$${r} = ${h
   for (let i = 0; i < 5; i++) passo(mm);                        // PC 0x1C: add $16 = 0x8000
   o = saidasPlaca(mm, { sw: 0, key: [false, false, false, false] });
   ok(o.mostraValor === 0x8000 && (o.ledg & 0x12) === 0x12, "LEDG4 (Negativo) e LEDG1 (Overflow) em 0x8000");
+  // chaves novas: SW15 = instrução nos 8 displays (add $16, $7, $8 = 00E88020), SW14/SW13 = A/B
+  o = saidasPlaca(mm, { sw: 1 << 15, key: [false, false, false, false] });
+  ok(o.fonte === "instr" && [0, 2, 0, 8, 8, 0xE, 0, 0].every((d, n) => o.hex[n] === HEX7SEG[d]), "SW15 mostra 00E88020");
+  o = saidasPlaca(mm, { sw: (1 << 15) | (1 << 17) | 1, key: [false, false, false, false] });
+  ok(o.fonte === "instr", "SW15 passa na frente do SW17");
+  o = saidasPlaca(mm, { sw: 1 << 14, key: [false, false, false, false] });
+  ok(o.fonte === "rs" && o.mostraValor === 0x7FFF && o.mostraReg === 7, "SW14 mostra A = $7");
+  o = saidasPlaca(mm, { sw: 1 << 13, key: [false, false, false, false] });
+  ok(o.fonte === "rt" && o.mostraValor === 1 && o.mostraReg === 8, "SW13 mostra B = $8");
+  o = saidasPlaca(mm, { sw: 1 << 16, key: [false, false, false, false] });
+  ok(o.fonte === "rd" && o.mostraValor === 0x8000, "SW16 não muda os displays");
 }
 
 // 3) ULA: casos do Lab 04

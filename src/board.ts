@@ -1,6 +1,6 @@
 // Monta a DE2-115 no DOM e pinta as saídas.
 // Só aparece aceso o que o datapath_board.vhd realmente liga.
-import { FUNCTS, Mnem, Saidas } from "./hw";
+import { AUTO_HZ, FUNCTS, Mnem, Saidas } from "./hw";
 
 const $ = (s: string) => document.querySelector(s) as HTMLElement;
 const mk = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, txt?: string): HTMLElementTagNameMap[K] => {
@@ -47,22 +47,34 @@ const KEYS: Record<number, { fn: string; desc: string }> = {
 const LEDR_CAMPOS = [{ t: "rt[1:0]", hi: 17, lo: 16 }, { t: "rd", hi: 15, lo: 11 }, { t: "shamt", hi: 10, lo: 6 }, { t: "funct", hi: 5, lo: 0 }];
 const SW_GRUPOS = [
   { t: "Ver", s: "reg", hi: 17, lo: 17, dim: false },
-  { t: "Livres", s: "SW16–5", hi: 16, lo: 5, dim: true },
+  { t: "Auto", s: "clk", hi: 16, lo: 16, dim: false },
+  { t: "Inst", s: "HEX", hi: 15, lo: 15, dim: false },
+  { t: "A", s: "rs", hi: 14, lo: 14, dim: false },
+  { t: "B", s: "rt", hi: 13, lo: 13, dim: false },
+  { t: "Livres", s: "SW12–5", hi: 12, lo: 5, dim: true },
   { t: "Nº reg", s: "SW4–0", hi: 4, lo: 0, dim: false },
 ];
 const colDe = (i: number) => 18 - i;                        // SW17 na coluna 1
 const span = (hi: number, lo: number) => `${colDe(hi)} / ${colDe(lo) + 1}`;
-const swDesc = (i: number) => i === 17 ? "liga o modo ver registrador" : i <= 4 ? `bit ${i} do número do registrador` : "não usada";
+const SW_DESC: Record<number, string> = {
+  17: "liga o modo ver registrador",
+  16: `clock automático: executa ${AUTO_HZ} instruções por segundo`,
+  15: "HEX7–0 mostram a instrução inteira",
+  14: "HEX3–0 mostram o operando A (rs), como segurar KEY2",
+  13: "HEX3–0 mostram o operando B (rt), como segurar KEY3",
+};
+const swDesc = (i: number) => SW_DESC[i] ?? (i <= 4 ? `bit ${i} do número do registrador` : "não usada");
 
 const FX: Record<Mnem, string> = {
   add: "A + B", sub: "A − B", and: "A and B", or: "A or B", xor: "A xor B", nor: "not(A or B)", slt: "A < B ? 1 : 0",
 };
 
-const ROTULO: Record<Saidas["fonte"], [string, string]> = {
-  rd: ["Reg rd", "Resultado da ULA"],
-  rs: ["Reg rs", "A · dado de rs (KEY2)"],
-  rt: ["Reg rt", "B · dado de rt (KEY3)"],
-  reg: ["Reg · SW4–0", "Valor do registrador (SW17)"],
+const ROTULO: Record<Saidas["fonte"], [string, string, string]> = {
+  instr: ["Instr 31–24", "23–16", "Instrução 15–0 (SW15)"],
+  rd: ["PC", "Reg rd", "Resultado da ULA"],
+  rs: ["PC", "Reg rs", "A · dado de rs (KEY2 / SW14)"],
+  rt: ["PC", "Reg rt", "B · dado de rt (KEY3 / SW13)"],
+  reg: ["PC", "Reg · SW4–0", "Valor do registrador (SW17)"],
 };
 
 export interface Handlers {
@@ -123,7 +135,7 @@ export function montarPlaca(cb: Handlers): Placa {
     const led = at(mk("span", "led r"), col, "2");
     led.title = `LEDR${i} · bit ${i} da instrução`;
     const b = at(mk("button", "sw"), col, "3") as HTMLButtonElement;
-    b.type = "button"; b.id = "sw" + i;
+    b.type = "button"; b.id = "sw" + i; b.title = `SW${i} · ${swDesc(i)}`;
     b.setAttribute("aria-label", `SW${i}, ${swDesc(i)}`);
     b.setAttribute("aria-pressed", "false");
     b.append(mk("span", "lever"));
@@ -186,9 +198,7 @@ export function montarPlaca(cb: Handlers): Placa {
       for (let g = 0; g < 9; g++) ledg[g].classList.toggle("on", on && ((o!.ledg >> g) & 1) === 1);
       for (let i = 0; i < 18; i++) swBtn[i].setAttribute("aria-pressed", String(((sw >> i) & 1) === 1));
       for (let k = 0; k < 4; k++) keyBtn[k].classList.toggle("down", keys[k]);
-      const [a, b] = ROTULO[on ? o!.fonte : "rd"];
-      hexLbl[1].textContent = a;
-      hexLbl[2].textContent = b;
+      ROTULO[on ? o!.fonte : "rd"].forEach((t, i) => { hexLbl[i].textContent = t; });
     },
   };
 }
